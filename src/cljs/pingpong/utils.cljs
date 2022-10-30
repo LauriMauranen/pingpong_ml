@@ -1,17 +1,17 @@
-(ns pingpong.ping
+(ns pingpong.utils
   (:require [quil.core :as q :include-macros true]))
 
-(defn check-bat-player [{:keys [ball ball-dir player-bat ball-speed]} 
+(defn check-bat-player [{:keys [ball ball-dir player-bat ball-speed]}
                         {:keys [size bat-width bat-height ball-diameter]}]
   (let [ball-radius (/ ball-diameter 2)
         ball-edge (+ (first ball) ball-radius)
         bat-edge (- (/ (first size) 2) bat-width)]
     (and (< ball-edge bat-edge)
          (< bat-edge (+ ball-edge (* 2 ball-speed (first ball-dir))))
-         (and (> (second ball) (- player-bat ball-radius)) 
+         (and (> (second ball) (- player-bat ball-radius))
               (< (second ball) (+ player-bat bat-height ball-radius))))))
 
-(defn check-bat-opponent [{:keys [ball ball-dir opponent-bat ball-speed]} 
+(defn check-bat-opponent [{:keys [ball ball-dir opponent-bat ball-speed]}
                           {:keys [size bat-width bat-height ball-diameter]}]
   (let [ball-radius (/ ball-diameter 2)
         ball-edge (- (first ball) ball-radius)
@@ -22,7 +22,7 @@
          (and (> (second ball) (- opponent-bat ball-radius))
               (< (second ball) (+ opponent-bat bat-height ball-radius))))))
 
-(defn check-roof-floor [{:keys [ball ball-dir ball-speed]} 
+(defn check-roof-floor [{:keys [ball ball-dir ball-speed]}
                         {:keys [size ball-diameter]}]
   (let [ball-roof-edge (- (second ball) (/ ball-diameter 2))
         ball-floor-edge (+ (second ball) (/ ball-diameter 2))
@@ -66,18 +66,18 @@
       1
       0)))
 
-(defn calc-new-ball-dir 
+(defn calc-new-ball-dir
   [{:as state :keys [player-bat-dir opponent-bat-dir ball-dir]} params]
   (cond
-    (check-bat-player state params) 
+    (check-bat-player state params)
       (player-hit-bat ball-dir player-bat-dir)
-    
-    (check-bat-opponent state params) 
+
+    (check-bat-opponent state params)
       (opponent-hit-bat ball-dir opponent-bat-dir)
-    
-    (check-roof-floor state params) 
+
+    (check-roof-floor state params)
       (hit-rf ball-dir)
-    
+
     :else ball-dir))
 
 (defn round [v]
@@ -90,7 +90,7 @@
   (let [p-score? (< (first ball) (- (/ (first size) 2)))
         opp-score? (> (first ball) (/ (first size) 2))
         rand-dir [(dec (* 2 (rand-int 2))) 0]]
-    (if p-score? 
+    (if p-score?
       [[0 0] rand-dir ball-start-speed 1 0]
       (if opp-score?
         [[0 0] rand-dir ball-start-speed 0 1]

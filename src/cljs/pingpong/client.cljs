@@ -33,15 +33,15 @@
 
 ;; Send state to server.
 (defn send-state-to-server!
-  [{:keys [ball ball-dir ball-speed player-bat player-bat-dir 
+  [{:keys [ball ball-dir ball-speed player-bat player-bat-dir
            player-score opponent-score]}]
   (chsk-send!
-    [:pingpong/state [ball 
-                      ball-dir 
-                      ball-speed 
-                      player-bat 
+    [:pingpong/state [ball
+                      ball-dir
+                      ball-speed
+                      player-bat
                       player-bat-dir
-                      player-score 
+                      player-score
                       opponent-score]]
     200 ;; Timeout
     (fn [reply]
@@ -81,7 +81,7 @@
 (defn stop-router! []
    (when-let [stop-f @router_] (stop-f)))
 
-;; Stop and start router while storing the router stop-function in 
+;; Stop and start router while storing the router stop-function in
 ;; router_ atom.
 (defn start-router! []
   (stop-router!)

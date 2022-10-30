@@ -1,9 +1,9 @@
 (ns pingpong.pong
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]
-            [pingpong.ping :refer [check-reset calc-bat-dir calc-new-ball-dir]]
-            [pingpong.client :refer [server-state send-state-to-server!
-                                     ball-start-speed bat-height]]))
+            [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball-dir]]))
+            ; [pingpong.client :refer [server-state send-state-to-server!
+            ;                          ball-start-speed bat-height]]))
 
 (def background-color 0)
 (def bat-color 255)
@@ -16,11 +16,29 @@
 (def ball-error 200)
 (def bat-error 30)
 
+(def bat-height 100)
+(def ball-start-speed 5)
+
 (def params {:size size
              :bat-width bat-width
              :bat-height bat-height
              :ball-diameter ball-diameter})
 
+
+
+;; Here we store server state.
+(def server-state (atom {:ball [0 0]
+                             :ball-dir [(dec (* 2 (rand-int 2))) 0]
+                             :ball-speed ball-start-speed
+                             :player-bat (- (/ bat-height 2))
+                             :opponent-bat  (- (/ bat-height 2))
+                             :player-bat-dir 0
+                             :opponent-bat-dir 0
+                             :player-score 0
+                             :opponent-score 0
+                             :game-on? false
+                             :host? true
+                             :state-used? false}))
 (defn setup []
   (q/frame-rate 60)
   @server-state)
@@ -30,13 +48,13 @@
     :m (-> state
            (assoc :down-pressed? true)
            (assoc :last-pressed :down))
-    :k (-> state 
+    :k (-> state
            (assoc :up-pressed? true)
            (assoc :last-pressed :up))
     state))
 
 (defn key-released [state event]
-  (case (:key event) 
+  (case (:key event)
     :m (assoc state :down-pressed? false)
     :k (assoc state :up-pressed? false)
     state))
@@ -44,7 +62,7 @@
 (defn distance [v1 v2]
   (q/dist (first v1) (first v2) (second v1) (second v2)))
 
-(defn check-and-fix-errors 
+(defn check-and-fix-errors
   [{:as state :keys [ball ball-speed player-bat]} s-state]
   (let [s-ball (:ball s-state)
         s-bat (:player-bat s-state)
@@ -56,31 +74,31 @@
         (assoc :player-bat s-bat))))
 
 (defn update-state [state]
-  (send-state-to-server! state)
-  (let [{:as s-state 
-         :keys [player-bat-dir opponent-bat opponent-bat-dir player-score 
+  ; (send-state-to-server! state)
+  (let [{:as s-state
+         :keys [player-bat-dir opponent-bat opponent-bat-dir player-score
                 opponent-score game-on? host? state-used?]} @server-state
-        
-        game-state (if game-on? 
+
+        game-state (if game-on?
                     (if (not state-used?)
                       (do (swap! server-state assoc :state-used? true)
                         (-> (check-and-fix-errors state s-state)
                           (update :player-bat + (* bat-speed player-bat-dir))
-                          (update :opponent-bat + (* bat-speed 
+                          (update :opponent-bat + (* bat-speed
                                                      opponent-bat-dir))
                           (assoc :player-bat-dir player-bat-dir)
                           (assoc :opponent-bat-dir opponent-bat-dir)))
                       (-> state
-                        (update :player-bat + (* bat-speed 
+                        (update :player-bat + (* bat-speed
                                                  (:player-bat-dir state)))
-                        (update :opponent-bat + (* bat-speed 
+                        (update :opponent-bat + (* bat-speed
                                                    (:opponent-bat-dir state)))))
                     (-> state
-                      (update :player-bat + 
+                      (update :player-bat +
                               (* bat-speed (:player-bat-dir state)))
                       (assoc :player-score 0)
                       (assoc :opponent-score 0)))
-        
+
         new-ball (mapv + (:ball game-state) (map #(* (:ball-speed game-state) %)
                                                  (:ball-dir game-state)))
         new-ball-dir (calc-new-ball-dir game-state params)
@@ -90,12 +108,12 @@
          final-ball-dir
          final-ball-speed
          p-score-inc
-         opp-score-inc] (check-reset size 
-                                     new-ball 
-                                     new-ball-dir 
+         opp-score-inc] (check-reset size
+                                     new-ball
+                                     new-ball-dir
                                      new-ball-speed
                                      ball-start-speed)
-        
+
         [p-score opp-score] (if host?
                               [(+ (:player-score game-state) p-score-inc)
                                (+ (:opponent-score game-state) opp-score-inc)]
@@ -142,11 +160,11 @@
   ;; Draw ball only when game is on!
   (when game-on?
     (draw-scores state)
-    (q/ellipse (first ball) (second ball) ball-diameter 
+    (q/ellipse (first ball) (second ball) ball-diameter
                ball-diameter))
   (draw-bats state))
 
-(defn run-sketch []
+(defn run-game! ^:export []
   (q/defsketch pingpong
     :title "Play pong!"
     :size size
@@ -156,3 +174,5 @@
     :update update-state
     :draw draw-state
     :middleware [m/fun-mode]))
+
+(run-game!)
