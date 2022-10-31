@@ -1,33 +1,31 @@
 (ns pingpong.utils
-  (:require [quil.core :as q :include-macros true]))
+  (:require [quil.core :as q :include-macros true]
+            [pingpong.constants :as c]))
 
-(defn check-bat-player [{:keys [ball ball-dir player-bat ball-speed]}
-                        {:keys [size bat-width bat-height ball-diameter]}]
-  (let [ball-radius (/ ball-diameter 2)
+(defn check-bat-player [{:keys [ball ball-dir player-bat ball-speed]}]
+  (let [ball-radius (/ c/ball-diameter 2)
         ball-edge (+ (first ball) ball-radius)
-        bat-edge (- (/ (first size) 2) bat-width)]
+        bat-edge (- (/ (first c/size) 2) c/bat-width)]
     (and (< ball-edge bat-edge)
          (< bat-edge (+ ball-edge (* 2 ball-speed (first ball-dir))))
          (and (> (second ball) (- player-bat ball-radius))
-              (< (second ball) (+ player-bat bat-height ball-radius))))))
+              (< (second ball) (+ player-bat c/bat-height ball-radius))))))
 
-(defn check-bat-opponent [{:keys [ball ball-dir opponent-bat ball-speed]}
-                          {:keys [size bat-width bat-height ball-diameter]}]
-  (let [ball-radius (/ ball-diameter 2)
+(defn check-bat-opponent [{:keys [ball ball-dir opponent-bat ball-speed]}]
+  (let [ball-radius (/ c/ball-diameter 2)
         ball-edge (- (first ball) ball-radius)
-        bat-edge (- bat-width (/ (first size) 2))]
+        bat-edge (- bat-width (/ (first c/size) 2))]
     (and (< bat-edge ball-edge)
          (< (+ ball-edge (* 2 ball-speed (first ball-dir))) bat-edge)
          ;; web-extra added to help non-host player!
          (and (> (second ball) (- opponent-bat ball-radius))
-              (< (second ball) (+ opponent-bat bat-height ball-radius))))))
+              (< (second ball) (+ opponent-bat c/bat-height ball-radius))))))
 
-(defn check-roof-floor [{:keys [ball ball-dir ball-speed]}
-                        {:keys [size ball-diameter]}]
-  (let [ball-roof-edge (- (second ball) (/ ball-diameter 2))
-        ball-floor-edge (+ (second ball) (/ ball-diameter 2))
-        roof-edge (- (/ (second size) 2))
-        floor-edge (/ (second size) 2)]
+(defn check-roof-floor [{:keys [ball ball-dir ball-speed]}]
+  (let [ball-roof-edge (- (second ball) (/ c/ball-diameter 2))
+        ball-floor-edge (+ (second ball) (/ c/ball-diameter 2))
+        roof-edge (- (/ (second c/size) 2))
+        floor-edge (/ (second c/size) 2)]
     (or (and (> ball-roof-edge roof-edge)
              (< (+ ball-roof-edge (* ball-speed (second ball-dir))) roof-edge))
         (and (< ball-floor-edge floor-edge)
@@ -67,15 +65,15 @@
       0)))
 
 (defn calc-new-ball-dir
-  [{:as state :keys [player-bat-dir opponent-bat-dir ball-dir]} params]
+  [{:as state :keys [player-bat-dir opponent-bat-dir ball-dir]}]
   (cond
-    (check-bat-player state params)
+    (check-bat-player state)
       (player-hit-bat ball-dir player-bat-dir)
 
-    (check-bat-opponent state params)
+    (check-bat-opponent state)
       (opponent-hit-bat ball-dir opponent-bat-dir)
 
-    (check-roof-floor state params)
+    (check-roof-floor state)
       (hit-rf ball-dir)
 
     :else ball-dir))
@@ -86,12 +84,12 @@
       (f v)
       (mapv f v))))
 
-(defn check-reset [size ball ball-dir ball-speed ball-start-speed]
-  (let [p-score? (< (first ball) (- (/ (first size) 2)))
-        opp-score? (> (first ball) (/ (first size) 2))
+(defn check-reset [ball ball-dir ball-speed]
+  (let [p-score? (< (first ball) (- (/ (first c/size) 2)))
+        opp-score? (> (first ball) (/ (first c/size) 2))
         rand-dir [(dec (* 2 (rand-int 2))) 0]]
     (if p-score?
-      [[0 0] rand-dir ball-start-speed 1 0]
+      [[0 0] rand-dir c/ball-start-speed 1 0]
       (if opp-score?
-        [[0 0] rand-dir ball-start-speed 0 1]
+        [[0 0] rand-dir c/ball-start-speed 0 1]
         [(round ball) (round ball-dir) (round ball-speed) 0 0]))))

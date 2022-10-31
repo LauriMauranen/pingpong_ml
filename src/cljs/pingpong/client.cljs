@@ -1,5 +1,6 @@
 (ns pingpong.client
-  (:require [taoensso.sente :as sente :refer [cb-success?]]))
+  (:require [taoensso.sente :as sente :refer [cb-success?]]
+            [pingpong.constants :as c]))
 
 
 ;;; Sente channels --->
@@ -12,23 +13,19 @@
   (def chsk-state state))   ;; Watchable, read-only atom
 
 
-(def bat-height 100)
-(def ball-start-speed 5)
-
-
 ;; Here we store server state.
-(defonce server-state (atom {:ball [0 0]
-                             :ball-dir [(dec (* 2 (rand-int 2))) 0]
-                             :ball-speed ball-start-speed
-                             :player-bat (- (/ bat-height 2))
-                             :opponent-bat  (- (/ bat-height 2))
-                             :player-bat-dir 0
-                             :opponent-bat-dir 0
-                             :player-score 0
-                             :opponent-score 0
-                             :game-on? false
-                             :host? true
-                             :state-used? false}))
+(def server-state (atom {:ball [0 0]
+                         :ball-dir [(dec (* 2 (rand-int 2))) 0]
+                         :ball-speed c/ball-start-speed
+                         :player-bat (- (/ c/bat-height 2))
+                         :opponent-bat  (- (/ c/bat-height 2))
+                         :player-bat-dir 0
+                         :opponent-bat-dir 0
+                         :player-score 0
+                         :opponent-score 0
+                         :game-on? false
+                         :host? true
+                         :state-used? false}))
 
 
 ;; Send state to server.
@@ -63,7 +60,6 @@
 
 (defmethod event :default [{:keys [event]}]
   (prn "Default client" event))
-
 
 ;; This msg from server determines is game on and is client game host.
 (defmethod event :chsk/recv [{:as ev-msg :keys [?data]}]

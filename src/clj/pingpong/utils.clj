@@ -1,8 +1,8 @@
-(ns pingpong.model)
+(ns pingpong.utils)
 
-(defonce follow-games (atom {}))
+(def follow-games (atom {}))
 
-(defonce last-changed-uid (atom nil))
+(def last-changed-uid (atom nil))
 
 
 ;; Helper function to pick number for new uid.

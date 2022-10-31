@@ -1,0 +1,1 @@
+{:ring-handler pingpong.routes/app}

@@ -1,12 +1,13 @@
 (ns pingpong.routes
   (:require [clojure.java.io :as io]
-            [compojure.core :refer [ANY GET PUT POST DELETE routes]]
-            [compojure.route :refer [resources]]
-            [ring.util.response :refer [response]]
+            [compojure.core :refer [GET POST defroutes]]
+            [compojure.route :as route]
+            [compojure.handler :as handler]
+            [compojure.response :as response]
             [taoensso.sente :as sente]
             [taoensso.sente.server-adapters.http-kit :refer [get-sch-adapter]]
-            [pingpong.model :as model :refer [follow-games last-changed-uid
-                                              make-p1-state make-p2-state]]))
+            [pingpong.utils :refer [follow-games last-changed-uid uid-to-client!
+                                    make-p1-state make-p2-state uid-to-game!]]))
 
 
 ;;; Sente channels --->
@@ -14,7 +15,7 @@
               ajax-post-fn ajax-get-or-ws-handshake-fn]}
       (sente/make-channel-socket! (get-sch-adapter) 
                                   {:csrf-token-fn nil
-                                   :user-id-fn model/uid-to-client!})]
+                                   :user-id-fn uid-to-client!})]
 
   (def ring-ajax-post                ajax-post-fn)
   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
@@ -23,17 +24,14 @@
   (def connected-uids                connected-uids)); Watchable, read-only atom
 
 
-(defn home-routes [endpoint]
-  (routes
-   (GET "/" _
-     (-> "public/index.html"
-         io/resource
-         io/input-stream
-         response
-         (assoc :headers {"Content-Type" "text/html; charset=utf-8"})))
-   (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
-   (POST "/chsk" req (ring-ajax-post                req))
-   (resources "/")))
+(defroutes main-routes []
+  (route/resources "/")
+  (route/not-found "Page not found")
+  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
+  (POST "/chsk" req (ring-ajax-post req)))
+
+
+(def app (handler/site main-routes))
 
 
 ;; Send state to other player. 
@@ -60,20 +58,19 @@
 
 
 ;;; Events --->
+; checks for event id
 (defmulti event :id)
 
 (defmethod event :default [{:keys [event]}]
   (prn "Default" event))
 
-(defmethod event :chsk/ws-ping [{:keys [event]}]
+(defmethod event :chsk/ws-ping []
   nil)
-
 
 ;; Put new client to game.
 (defmethod event :chsk/uidport-open [{:keys [uid]}]
   (prn "Client added to game" uid)
-  (model/uid-to-game! uid chsk-send!))
-
+  (uid-to-game! uid chsk-send!))
 
 ;; Remove offline client from game.
 (defmethod event :chsk/uidport-close [{:keys [uid]}]
@@ -83,8 +80,7 @@
     (swap! follow-games dissoc uid)
     (when opp-uid
       ;; If opponent exists move her to another game.
-      (model/uid-to-game! opp-uid chsk-send!))))
-
+      (uid-to-game! opp-uid chsk-send!))))
 
 ;; States from players.
 (defmethod event :pingpong/state [{:keys [uid ?data ?reply-fn]}]
