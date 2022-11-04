@@ -14,7 +14,7 @@
 (defn check-bat-opponent [{:keys [ball ball-dir opponent-bat ball-speed]}]
   (let [ball-radius (/ c/ball-diameter 2)
         ball-edge (- (first ball) ball-radius)
-        bat-edge (- bat-width (/ (first c/size) 2))]
+        bat-edge (- c/bat-width (/ (first c/size) 2))]
     (and (< bat-edge ball-edge)
          (< (+ ball-edge (* 2 ball-speed (first ball-dir))) bat-edge)
          ;; web-extra added to help non-host player!

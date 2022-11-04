@@ -5,7 +5,9 @@
 
 ;;; Sente channels --->
 (let [{:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket! "/chsk" {:type :auto})]
+      (sente/make-channel-socket-client! "/chsk" nil {:type :auto
+                                                      :host "localhost"
+                                                      :port 8090})]
 
   (def chsk       chsk)
   (def ch-chsk    ch-recv)  ;; ChannelSocket's receive channel

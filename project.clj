@@ -13,9 +13,10 @@
                  [http-kit "2.6.0"]
                  [com.bhauman/rebel-readline-cljs "0.1.4"]]
 
+  :main pingpong.server
+
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
   :resource-paths ["target" "resources"]
 
-  :aliases {"fig" ["trampoline" "run" "-m" "figwheel.main"]
-            "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]})
+  :aliases {"build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]})

@@ -1,1 +1,3 @@
-{:ring-handler pingpong.routes/app}
+{
+ ; :ring-handler pingpong.server/app
+}

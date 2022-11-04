@@ -1,7 +1,8 @@
-(ns pingpong.utils)
+(ns pingpong.utils
+  (:require [pingpong.websocket :refer [chsk-send!]]))
 
-(def follow-games (atom {}))
 
+(def follow-games (atom []))
 (def last-changed-uid (atom nil))
 
 
@@ -58,31 +59,19 @@
 
 
 ;; Add uid to game.
-(defn uid-to-game! [client-uid chsk-send!]
-  (let [games @follow-games
-        uids (keys games)]
-    ;; Try find opponent
-    (loop [u-list uids]
-      (if (empty? u-list)
-        (do ;; No other players or all games are full.
-          (swap! follow-games assoc client-uid {:host? true
-                                                :opp-uid nil
-                                                :state nil
-                                                :callback nil})
-          ;; Tell client she is host.
-          (chsk-send! client-uid [:pingpong/game-on? false])
-          (chsk-send! client-uid [:pingpong/host-yes! nil]))
-        (let [uid (first u-list)
-              {:keys [opp-uid]} (get games uid)]
-          (if opp-uid
-            (recur (rest u-list))
-            (do ;; Opponent found. Change also opponents state.
-              (swap! follow-games assoc-in [uid :opp-uid] client-uid)
-              (swap! follow-games assoc client-uid {:host? false
-                                                    :opp-uid uid
-                                                    :state nil
-                                                    :callback nil})
-              ;; Game on!
-              (chsk-send! uid [:pingpong/game-on? true])
-              (chsk-send! client-uid [:pingpong/game-on? true])
-              (chsk-send! client-uid [:pingpong/not-host! nil]))))))))
+(defn uid-to-game! [client-uid]
+  ;; Try find opponent
+  (loop [games @follow-games
+         idx 0]
+    (if (empty? games)
+      ;; No other players or all games are full.
+      (swap! follow-games conj {:player-1 client-uid :player-2 nil})
+      (let [game (first games)
+            player-1 (:player-1 game)
+            player-2 (:player-2 game)]
+        (if (or (not (or player-1 player-2)) (and player-1 player-2))
+          (recur (rest games) (inc idx))
+          ;; Opponent found.
+          (if player-1
+            (swap! follow-games assoc-in [idx :player-2] client-uid)
+            (swap! follow-games assoc-in [idx :player-1] client-uid)))))))
