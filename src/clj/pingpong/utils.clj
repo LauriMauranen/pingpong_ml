@@ -53,11 +53,6 @@
    p1-score])
 
 
-;; Gives uid to every client.
-(defn uid-to-client! [ring-req]
-  (format "user-%d" (smallest-new-num!)))
-
-
 ;; Add uid to game.
 (defn uid-to-game! [client-uid]
   ;; Try find opponent
@@ -69,9 +64,27 @@
       (let [game (first games)
             player-1 (:player-1 game)
             player-2 (:player-2 game)]
-        (if (or (not (or player-1 player-2)) (and player-1 player-2))
+        (if (and player-1 player-2)
           (recur (rest games) (inc idx))
           ;; Opponent found.
           (if player-1
             (swap! follow-games assoc-in [idx :player-2] client-uid)
             (swap! follow-games assoc-in [idx :player-1] client-uid)))))))
+
+
+(defn remove-game-if-empty! [game-idx]
+  (let [games @follow-games]
+    (when (not (or (:player-1 game) (:player-2 game)))
+      (reset! follow-games (concat (subvec games 0 game-idx) 
+                                   (subvec games (inc game-idx)))))))
+
+
+(defn remove-uid-from-game! [client-uid]
+  (loop [games @follow-games
+         idx 0]
+    (let [game (first games)]
+      (if (= client-uid (:player-1 game))
+        (swap! follow-games assoc-in [idx :player-1] nil)
+        (if (= client-uid (:player-2 game))
+          (swap! follow-games assoc-in [idx :player-2] nil)
+          (recur (rest games) (inc idx)))))))

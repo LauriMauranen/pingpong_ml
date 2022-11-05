@@ -3,10 +3,16 @@
             [taoensso.sente.server-adapters.http-kit :refer [get-sch-adapter]]))
 
 
+(def running-uid (atom 0))
+
+(defn uid-to-client! [ring-req]
+  (swap! running-uid inc))
+
+
 ;;; Sente channels --->
 (let [{:keys [ch-recv send-fn connected-uids ajax-post-fn ajax-get-or-ws-handshake-fn]}
       (sente/make-channel-socket-server! (get-sch-adapter) 
-                                         {; :user-id-fn uid-to-client!
+                                         {:user-id-fn uid-to-client!
                                           :csrf-token-fn nil})]
 
   (def ring-ajax-post                ajax-post-fn)

@@ -8,7 +8,7 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.reload :refer [wrap-reload]]
             [pingpong.websocket :refer [ring-ajax-get-or-ws-handshake ring-ajax-post ch-chsk]]
-            [pingpong.utils :refer [follow-games last-changed-uid uid-to-client!
+            [pingpong.utils :refer [follow-games last-changed-uid remove-uid-from-game!
                                     make-p1-state make-p2-state uid-to-game!]]))
 
 
@@ -52,19 +52,14 @@
 
 ;; Put new client to game.
 (defmethod event :chsk/uidport-open [{:keys [uid]}]
-  (prn "Client added to game" uid)
-  (uid-to-game! uid))
+  (uid-to-game! uid)
+  (prn "Client added to game" uid))
 
 
 ;; Remove offline client from game.
 (defmethod event :chsk/uidport-close [{:keys [uid]}]
-  (prn "Client removed from game" uid)
-  (let [{:keys [opp-uid]} (get @follow-games uid)]
-    ;; Remove client
-    ; (swap! follow-games dissoc uid)
-    (when opp-uid
-      ;; If opponent exists move her to another game.
-      (uid-to-game! opp-uid))))
+  (remove-uid-from-game! uid)
+  (prn "Client removed from game" uid))
 
 
 ;; States from players.
