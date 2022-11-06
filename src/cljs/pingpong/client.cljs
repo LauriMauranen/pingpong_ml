@@ -19,42 +19,35 @@
 (def server-state (atom {:ball [0 0]
                          :ball-dir [(dec (* 2 (rand-int 2))) 0]
                          :ball-speed c/ball-start-speed
-                         :player-bat (- (/ c/bat-height 2))
-                         :opponent-bat  (- (/ c/bat-height 2))
-                         :player-bat-dir 0
+                         :opponent-bat (- (/ c/bat-height 2))
                          :opponent-bat-dir 0
                          :player-score 0
                          :opponent-score 0
                          :game-on? false
-                         :host? true
                          :state-used? false}))
 
 
 ;; Send state to server.
 (defn send-state-to-server!
-  [{:keys [ball ball-dir ball-speed player-bat player-bat-dir
-           player-score opponent-score]}]
+  [{:keys [ball ball-dir ball-speed
+           player-bat player-bat-dir]}]
   (chsk-send!
     [:pingpong/state [ball
                       ball-dir
                       ball-speed
                       player-bat
-                      player-bat-dir
-                      player-score
-                      opponent-score]]
-    200 ;; Timeout
+                      player-bat-dir]]
+    100 ;; Timeout
     (fn [reply]
       (when (cb-success? reply)
-        (swap! server-state into (zipmap [:ball
-                                          :ball-dir
-                                          :ball-speed
-                                          :player-bat
-                                          :player-bat-dir
-                                          :opponent-bat
-                                          :opponent-bat-dir
-                                          :player-score
-                                          :opponent-score] reply))
-        (swap! server-state assoc :state-used? false)))))
+        (let [new-state (zipmap [:ball
+                                 :ball-dir
+                                 :ball-speed
+                                 :opponent-bat
+                                 :opponent-bat-dir] reply)
+              new-state (assoc new-state :state-used? false)]
+          (swap! server-state into new-state))))))
+
 
 
 ;;; Event handler --->
@@ -63,13 +56,11 @@
 (defmethod event :default [{:keys [event]}]
   (prn "Default client" event))
 
-;; This msg from server determines is game on and is client game host.
 (defmethod event :chsk/recv [{:as ev-msg :keys [?data]}]
+  (prn "Receive" ?data)
   (case (first ?data)
     :pingpong/game-on? (swap! server-state assoc :game-on? (second ?data))
-    :pingpong/host-yes! (swap! server-state assoc :host? true)
-    :pingpong/not-host! (swap! server-state assoc :host? false)
-    (prn "Receive" ev-msg)))
+    nil))
 
 
 ;;; Router --->

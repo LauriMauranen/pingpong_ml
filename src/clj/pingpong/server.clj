@@ -8,8 +8,8 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.reload :refer [wrap-reload]]
             [pingpong.websocket :refer [ring-ajax-get-or-ws-handshake ring-ajax-post ch-chsk]]
-            [pingpong.utils :refer [follow-games last-changed-uid remove-uid-from-game!
-                                    make-p1-state make-p2-state uid-to-game!]]))
+            [pingpong.utils :as utils]))
+
 
 
 (defroutes main-routes
@@ -18,27 +18,26 @@
   (route/not-found "Page not found"))
 
 
-;; Send state to other player. 
-; (add-watch last-changed-uid 
-;            nil
-;            (fn [_ _ _ p1-uid]
-;             (let [games @follow-games
-;                   p1 (get games p1-uid)
-;                   p1-host? (:host? p1)
-;                   p1-state (:state p1)
-;                   p2-uid (:opp-uid p1)
-;                   p1-callback (:callback p1)]
-;               (when p2-uid
-;                 (let [p2 (get games p2-uid)
-;                       p2-state (:state p2)
-;                       p2-callback (:callback p2)]
-;                   ;; Server waits both players before sending new states.
-;                   (when (and p1-host? p2-state)
-;                     (p1-callback (make-p1-state p1-state p2-state))
-;                     (p2-callback (make-p2-state p1-state p2-state))
-;                     ;; Reset states.
-;                     (swap! follow-games assoc-in [p1-uid :state] nil)
-;                     (swap! follow-games assoc-in [p2-uid :state] nil)))))))
+;; Send state to other player.
+(add-watch utils/last-changed-uid
+           nil
+           (fn [_ _ _ p1-uid]
+            (let [games @utils/follow-games
+                  p1 (get games p1-uid)
+                  p2-uid (:opp-uid p1)]
+              (when p2-uid
+                (let [p1-state (:state p1)
+                      p1-callback (:callback p1)
+                      p2 (get games p2-uid)
+                      p2-state (:state p2)
+                      p2-callback (:callback p2)]
+                  ;; Server waits both players before sending new states.
+                  (when p2-state
+                    (p1-callback (utils/state-for-client p2-state))
+                    (p2-callback (utils/state-for-client p1-state))
+                    ;; Reset states.
+                    (swap! utils/follow-games assoc-in [p1-uid :state] nil)
+                    (swap! utils/follow-games assoc-in [p2-uid :state] nil)))))))
 
 
 ;;; Events --->
@@ -49,25 +48,24 @@
 (defmethod event :default [{:keys [event]}]
   (prn "Default server" event))
 
+(defmethod event :chsk/ws-ping [ev-msg]
+  nil)
 
 ;; Put new client to game.
 (defmethod event :chsk/uidport-open [{:keys [uid]}]
-  (uid-to-game! uid)
+  (utils/uid-to-game! uid)
   (prn "Client added to game" uid))
-
 
 ;; Remove offline client from game.
 (defmethod event :chsk/uidport-close [{:keys [uid]}]
-  (remove-uid-from-game! uid)
+  (utils/remove-uid-from-game! uid)
   (prn "Client removed from game" uid))
-
 
 ;; States from players.
 (defmethod event :pingpong/state [{:keys [uid ?data ?reply-fn]}]
-  ; (swap! follow-games assoc-in [uid :state] ?data)
-  ; (swap! follow-games assoc-in [uid :callback] ?reply-fn)
-  ; (reset! last-changed-uid uid)
-  nil)
+  (swap! utils/follow-games assoc-in [uid :state] ?data)
+  (swap! utils/follow-games assoc-in [uid :callback] ?reply-fn)
+  (reset! utils/last-changed-uid uid))
 
 
 ;;; Router --->
@@ -77,7 +75,7 @@
 (defn stop-router! []
    (when-let [stop-f @router_] (stop-f)))
 
-;; Stop and start router while storing the router stop-function in 
+;; Stop and start router while storing the router stop-function in
 ;; router_ atom.
 (defn start-router! []
   (stop-router!)

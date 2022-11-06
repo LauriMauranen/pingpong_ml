@@ -2,36 +2,14 @@
   (:require [pingpong.websocket :refer [chsk-send!]]))
 
 
-(def follow-games (atom []))
+(def follow-games (atom {}))
 (def last-changed-uid (atom nil))
 
-
-;; Helper function to pick number for new uid.
-(defn smallest-new-num! []
-  (let [games @follow-games
-        ;; These numbers are already in use.
-        nums (sort (map #(Integer/parseInt (str( last %))) (keys games)))
-        len (count nums)]
-    (loop [try-num 1
-           index 0]
-      (if (and (< index len) 
-               (>= try-num (nth nums index)))
-        (recur (inc try-num) (inc index))
-        try-num))))
-
-
-(defn make-p1-state
-  [[ball ball-dir ball-speed p1-bat p1-bat-dir p1-score p2-score]
-   [_ _ _ p2-bat p2-bat-dir _ _]]
-  [ball
-   ball-dir
-   ball-speed
-   p1-bat
-   p1-bat-dir
-   p2-bat
-   p2-bat-dir
-   p1-score
-   p2-score])
+(def empty-game {:opp-uid nil
+                 :p-score 0
+                 :opp-score 0
+                 :state nil
+                 :callback nil})
 
 
 ;; Reverse x-axis because both players see's themselves on right.
@@ -39,52 +17,37 @@
   [(- (first v)) (second v)])
 
 
-(defn make-p2-state
-  [[ball ball-dir ball-speed p1-bat p1-bat-dir p1-score p2-score]
-   [_ _ _ p2-bat p2-bat-dir _ _]]
+(defn state-for-client
+  [[ball ball-dir ball-speed bat bat-dir]]
   [(reverse-x ball)
    (reverse-x ball-dir)
    ball-speed
-   p2-bat
-   p2-bat-dir
-   p1-bat
-   p1-bat-dir
-   p2-score
-   p1-score])
+   bat
+   bat-dir])
 
 
 ;; Add uid to game.
 (defn uid-to-game! [client-uid]
   ;; Try find opponent
-  (loop [games @follow-games
-         idx 0]
+  (loop [games (keys @follow-games)]
     (if (empty? games)
       ;; No other players or all games are full.
-      (swap! follow-games conj {:player-1 client-uid :player-2 nil})
-      (let [game (first games)
-            player-1 (:player-1 game)
-            player-2 (:player-2 game)]
-        (if (and player-1 player-2)
-          (recur (rest games) (inc idx))
+      (swap! follow-games assoc client-uid empty-game)
+      (let [player-uid (first games)
+            {:keys [opp-uid]} (get @follow-games player-uid)]
+        (if opp-uid
+          (recur (rest games))
           ;; Opponent found.
-          (if player-1
-            (swap! follow-games assoc-in [idx :player-2] client-uid)
-            (swap! follow-games assoc-in [idx :player-1] client-uid)))))))
-
-
-(defn remove-game-if-empty! [game-idx]
-  (let [games @follow-games]
-    (when (not (or (:player-1 game) (:player-2 game)))
-      (reset! follow-games (concat (subvec games 0 game-idx) 
-                                   (subvec games (inc game-idx)))))))
+          (let [game (assoc empty-game :opp-uid player-uid)]
+            (swap! follow-games assoc-in [player-uid :opp-uid] client-uid)
+            (swap! follow-games assoc client-uid game)
+            (chsk-send! player-uid [:pingpong/game-on? true])
+            (chsk-send! client-uid [:pingpong/game-on? true])))))))
 
 
 (defn remove-uid-from-game! [client-uid]
-  (loop [games @follow-games
-         idx 0]
-    (let [game (first games)]
-      (if (= client-uid (:player-1 game))
-        (swap! follow-games assoc-in [idx :player-1] nil)
-        (if (= client-uid (:player-2 game))
-          (swap! follow-games assoc-in [idx :player-2] nil)
-          (recur (rest games) (inc idx)))))))
+  (let [opp-uid (get-in @follow-games [client-uid :opp-uid])]
+    (when opp-uid
+      (swap! follow-games assoc opp-uid empty-game)
+      (chsk-send! opp-uid [:pingpong/game-on? false]))
+  (swap! follow-games dissoc client-uid)))

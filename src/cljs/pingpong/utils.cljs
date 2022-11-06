@@ -93,3 +93,8 @@
       (if opp-score?
         [[0 0] rand-dir c/ball-start-speed 0 1]
         [(round ball) (round ball-dir) (round ball-speed) 0 0]))))
+
+(defn calc-new-ball [{:as state :keys [ball ball-speed ball-dir]}]
+  [(mapv + ball (map #(* ball-speed %) ball-dir))
+   (calc-new-ball-dir state)
+   (+ ball-speed c/speed-inc)])

@@ -1,29 +1,16 @@
 (ns pingpong.pong
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]
-            [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball-dir]]
-            [pingpong.client :refer [send-state-to-server!]]
+            [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball]]
+            [pingpong.client :refer [send-state-to-server! server-state]]
             [pingpong.constants :as c]))
-
-
-;; Here we store server state.
-(def server-state (atom {:ball [0 0]
-                             :ball-dir [(dec (* 2 (rand-int 2))) 0]
-                             :ball-speed c/ball-start-speed
-                             :player-bat (- (/ c/bat-height 2))
-                             :opponent-bat  (- (/ c/bat-height 2))
-                             :player-bat-dir 0
-                             :opponent-bat-dir 0
-                             :player-score 0
-                             :opponent-score 0
-                             :game-on? false
-                             :host? true
-                             :state-used? false}))
 
 
 (defn setup []
   (q/frame-rate 60)
-  @server-state)
+  (-> @server-state
+      (assoc :player-bat (- (/ c/bat-height 2)))
+      (assoc :player-bat-dir 0)))
 
 (defn key-pressed [state event]
   (case (:key event)
@@ -41,49 +28,25 @@
     :k (assoc state :up-pressed? false)
     state))
 
-; (defn distance [v1 v2]
-;   (q/dist (first v1) (first v2) (second v1) (second v2)))
 
-; (defn check-and-fix-errors
-;   [{:as state :keys [ball ball-speed player-bat]} s-state]
-;   (let [s-ball (:ball s-state)
-;         s-bat (:player-bat s-state)
-;         s-speed (:ba1l-speed s-state)]
-;     (cond-> state
-;       (> (distance ball s-ball) ball-error)
-;         (assoc :ball s-ball)
-;       (> (q/abs (- player-bat s-bat)) bat-error)
-;         (assoc :player-bat s-bat))))
+(defn update-state [s]
+  (let [ss (-> @server-state
+               (assoc :player-bat (:player-bat s))
+               (assoc :player-bat-dir (:player-bat-dir s)))
 
-(defn update-state [state]
-  (let [{:as s-state
-         :keys [player-bat-dir opponent-bat opponent-bat-dir player-score
-                opponent-score game-on? host? state-used?]} @server-state
+        new-player-bat-dir (calc-bat-dir s)
+        new-player-bat (+ (:player-bat s) (* c/bat-speed new-player-bat-dir))
 
-        game-state (if game-on?
-                    (if (not state-used?)
-                      (do (swap! server-state assoc :state-used? true)
-                        (-> state ;;(check-and-fix-errors state s-state)
-                          (update :player-bat + (* c/bat-speed player-bat-dir))
-                          (update :opponent-bat + (* c/bat-speed
-                                                     opponent-bat-dir))
-                          (assoc :player-bat-dir player-bat-dir)
-                          (assoc :opponent-bat-dir opponent-bat-dir)))
-                      (-> state
-                        (update :player-bat + (* c/bat-speed
-                                                 (:player-bat-dir state)))
-                        (update :opponent-bat + (* c/bat-speed
-                                                   (:opponent-bat-dir state)))))
-                    (-> state
-                      (update :player-bat +
-                              (* c/bat-speed (:player-bat-dir state)))
-                      (assoc :player-score 0)
-                      (assoc :opponent-score 0)))
+        new-opp-bat-dir (:opponent-bat-dir ss)
+        new-opp-bat (:opponent-bat ss)
 
-        new-ball (mapv + (:ball game-state) (map #(* (:ball-speed game-state) %)
-                                                 (:ball-dir game-state)))
-        new-ball-dir (calc-new-ball-dir game-state)
-        new-ball-speed (+ (:ball-speed game-state) c/speed-inc)
+        [new-ball
+         new-ball-dir
+         new-ball-speed] (if (:state-used? ss)
+                           (calc-new-ball s)
+                           (do
+                             (swap! server-state assoc :state-used? true)
+                             (calc-new-ball ss)))
 
         [final-ball
          final-ball-dir
@@ -91,22 +54,25 @@
          p-score-inc
          opp-score-inc] (check-reset new-ball new-ball-dir new-ball-speed)
 
-        [p-score opp-score] (if host?
-                              [(+ (:player-score game-state) p-score-inc)
-                               (+ (:opponent-score game-state) opp-score-inc)]
-                              [player-score opponent-score])
+        p-score (+ (:player-score ss) p-score-inc)
+        opp-score (+ (:opponent-score ss) opp-score-inc)
 
-        next-state (-> game-state
-                     (assoc :game-on? game-on?)
+        next-state (-> s
+                     (assoc :game-on? (:game-on? ss))
                      (assoc :ball final-ball)
                      (assoc :ball-dir final-ball-dir)
                      (assoc :ball-speed final-ball-speed)
-                     (assoc :player-bat-dir (calc-bat-dir state))
+                     (assoc :player-bat new-player-bat)
+                     (assoc :player-bat-dir new-player-bat-dir)
+                     (assoc :opponent-bat new-opp-bat)
+                     (assoc :opponent-bat-dir new-opp-bat-dir)
                      (assoc :player-score p-score)
                      (assoc :opponent-score opp-score))]
-      
-      (send-state-to-server! state)
-      next-state))
+
+    (send-state-to-server! next-state)
+    (prn "local" (:ball s) "server" (:ball ss))
+    ; (send-score-to-server! [p-score opp-score])
+    next-state))
 
 (defn draw-keys []
   (let [bottom (/ (q/height) 2)
