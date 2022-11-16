@@ -1,13 +1,14 @@
 (ns pingpong.pong
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]
-            [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball]]
+            [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball
+                                    calc-new-ball-server calc-avg calc-bat-server]]
             [pingpong.client :refer [send-state-to-server! server-state]]
             [pingpong.constants :as c]))
 
 
 (defn setup []
-  (q/frame-rate 60)
+  (q/frame-rate c/frame-rate)
   (-> @server-state
       (assoc :player-bat (- (/ c/bat-height 2)))
       (assoc :player-bat-dir 0)))
@@ -30,23 +31,21 @@
 
 
 (defn update-state [s]
-  (let [ss (-> @server-state
-               (assoc :player-bat (:player-bat s))
-               (assoc :player-bat-dir (:player-bat-dir s)))
+  (let [ss @server-state
 
         new-player-bat-dir (calc-bat-dir s)
         new-player-bat (+ (:player-bat s) (* c/bat-speed new-player-bat-dir))
 
         new-opp-bat-dir (:opponent-bat-dir ss)
-        new-opp-bat (:opponent-bat ss)
+        new-opp-bat (if (:state-used? ss)
+                      (+ (:opponent-bat s) (* c/bat-speed new-opp-bat-dir))
+                      (calc-bat-server s ss))
 
         [new-ball
          new-ball-dir
          new-ball-speed] (if (:state-used? ss)
                            (calc-new-ball s)
-                           (do
-                             (swap! server-state assoc :state-used? true)
-                             (calc-new-ball ss)))
+                           (calc-new-ball-server s ss))
 
         [final-ball
          final-ball-dir
@@ -69,26 +68,23 @@
                      (assoc :player-score p-score)
                      (assoc :opponent-score opp-score))]
 
-    (send-state-to-server! next-state)
-    (prn "local" (:ball s) "server" (:ball ss))
+    (when (and (:game-on? next-state)
+          (= (rem (q/frame-count) c/server-message-interval) 0))
+      (send-state-to-server! next-state))
     ; (send-score-to-server! [p-score opp-score])
+    ; (calc-server-offset s ss new-ball)
+    (swap! server-state assoc :state-used? true)
     next-state))
 
 (defn draw-keys []
-  (let [bottom (/ (q/height) 2)
-        k-height (* bottom 0.7)
-        m-height (* bottom 0.85)]
   (q/text-size 30)
-  (q/text "K" 0 k-height)
-  (q/text "M" -2 m-height)))
+  (q/text "K" 0 c/k-height)
+  (q/text "M" -2 c/m-height))
 
 (defn draw-scores [{:keys [player-score opponent-score]}]
-  (let [p-width (- (/ (q/width) 2) 50)
-        opp-width (- 50 (/ (q/width) 2))
-        p-opp-height (- 50 (/ (q/height) 2))]
   (q/text-size 25)
-  (q/text-num player-score p-width p-opp-height)
-  (q/text-num opponent-score opp-width p-opp-height)))
+  (q/text-num player-score c/p-score-width c/score-height)
+  (q/text-num opponent-score c/opp-score-width c/score-height))
 
 (defn draw-bats [{:keys [player-bat opponent-bat host?]}]
   (q/rect (- (/ (q/width) 2)) opponent-bat c/bat-width c/bat-height)

@@ -26,15 +26,19 @@
                   p1 (get games p1-uid)
                   p2-uid (:opp-uid p1)]
               (when p2-uid
-                (let [p1-state (:state p1)
-                      p1-callback (:callback p1)
-                      p2 (get games p2-uid)
-                      p2-state (:state p2)
-                      p2-callback (:callback p2)]
+                (let [p2 (get games p2-uid)
+                      p2-state (:state p2)]
                   ;; Server waits both players before sending new states.
                   (when p2-state
-                    (p1-callback (utils/state-for-client p2-state))
-                    (p2-callback (utils/state-for-client p1-state))
+                    (let [p1-state (:state p1)
+                          p1-callback (:callback p1)
+                          p2-callback (:callback p2)
+                          ball-state-p1 (utils/ball-state-to-p1 p1-state)
+                          ball-state-p2 (utils/reverse-x-ball ball-state-p1)
+                          new-state-p1 (utils/new-state ball-state-p1 p2-state)
+                          new-state-p2 (utils/new-state ball-state-p2 p1-state)]
+                      (p1-callback new-state-p1)
+                      (p2-callback new-state-p2))
                     ;; Reset states.
                     (swap! utils/follow-games assoc-in [p1-uid :state] nil)
                     (swap! utils/follow-games assoc-in [p2-uid :state] nil)))))))

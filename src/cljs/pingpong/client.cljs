@@ -17,14 +17,14 @@
 
 ;; Here we store server state.
 (def server-state (atom {:ball [0 0]
-                         :ball-dir [(dec (* 2 (rand-int 2))) 0]
+                         :ball-dir [(dec (* (rand-int 2) 2)) 0]
                          :ball-speed c/ball-start-speed
                          :opponent-bat (- (/ c/bat-height 2))
                          :opponent-bat-dir 0
                          :player-score 0
                          :opponent-score 0
                          :game-on? false
-                         :state-used? false}))
+                         :state-used? true}))
 
 
 ;; Send state to server.
@@ -37,7 +37,7 @@
                       ball-speed
                       player-bat
                       player-bat-dir]]
-    100 ;; Timeout
+    c/timeout ;; Timeout
     (fn [reply]
       (when (cb-success? reply)
         (let [new-state (zipmap [:ball
@@ -49,7 +49,6 @@
           (swap! server-state into new-state))))))
 
 
-
 ;;; Event handler --->
 (defmulti event :id)
 
@@ -57,10 +56,13 @@
   (prn "Default client" event))
 
 (defmethod event :chsk/recv [{:as ev-msg :keys [?data]}]
-  (prn "Receive" ?data)
-  (case (first ?data)
-    :pingpong/game-on? (swap! server-state assoc :game-on? (second ?data))
-    nil))
+  (let [id (first ?data)
+        data (second ?data)]
+    (prn "Receive" id data)
+    (case id
+      :pingpong/game-on (swap! server-state assoc :game-on? true)
+      :pingpong/game-off (swap! server-state assoc :game-on? false)
+      nil)))
 
 
 ;;; Router --->

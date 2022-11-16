@@ -2,6 +2,12 @@
   (:require [quil.core :as q :include-macros true]
             [pingpong.constants :as c]))
 
+
+; (def server-local-offset (atom {:n 0
+;                                 :x-avg 0
+;                                 :y-avg 0}))
+
+
 (defn check-bat-player [{:keys [ball ball-dir player-bat ball-speed]}]
   (let [ball-radius (/ c/ball-diameter 2)
         ball-edge (+ (first ball) ball-radius)
@@ -80,9 +86,10 @@
 
 (defn round [v]
   (let [f #(/ (.round js/Math (* (+ % 0.0001) 1000)) 1000)]
-    (if (number? v)
-      (f v)
-      (mapv f v))))
+    (f v)))
+
+(defn round-v [v]
+  (mapv round v))
 
 (defn check-reset [ball ball-dir ball-speed]
   (let [p-score? (< (first ball) (- (/ (first c/size) 2)))
@@ -92,9 +99,60 @@
       [[0 0] rand-dir c/ball-start-speed 1 0]
       (if opp-score?
         [[0 0] rand-dir c/ball-start-speed 0 1]
-        [(round ball) (round ball-dir) (round ball-speed) 0 0]))))
+        [(round-v ball) (round-v ball-dir) (round ball-speed) 0 0]))))
+
+(defn calc-ball [ball ball-dir ball-speed]
+  (mapv + ball (map #(* ball-speed %) ball-dir)))
 
 (defn calc-new-ball [{:as state :keys [ball ball-speed ball-dir]}]
-  [(mapv + ball (map #(* ball-speed %) ball-dir))
+  [(calc-ball ball ball-dir ball-speed)
    (calc-new-ball-dir state)
    (+ ball-speed c/speed-inc)])
+
+(defn calc-avg [value-1 value-2 n]
+  (round (/ (+ value-1 value-2) n)))
+
+(defn calc-weighted-avg [value-1 value-2]
+  (let [v1 (* value-1 c/wa-weight-local)
+        v2 (* value-2 c/wa-weight-server)]
+    (round (/ (+ v1 v2) c/wa-div))))
+
+(defn use-local [value-1 value-2]
+  value-1)
+
+(defn calc-local-server [local server]
+  (let [func calc-weighted-avg]
+    (func local server)))
+
+(defn calc-new-ball-server
+  [{:as state :keys [player-bat player-bat-dir]}
+   {:as server-state :keys [ball ball-dir ball-speed]}]
+  (let [new-ball (mapv calc-local-server (:ball state) ball)
+        new-ball-dir (mapv calc-local-server (:ball-dir state) ball-dir)
+        new-ball-speed (calc-local-server (:ball-speed state) ball-speed)
+        full-state (-> server-state
+                       (assoc :player-bat player-bat)
+                       (assoc :player-bat-dir player-bat-dir))]
+  [(calc-ball new-ball new-ball-dir (* new-ball-speed c/server-lag-offset))
+   (calc-new-ball-dir full-state)
+   (+ new-ball-speed c/speed-inc)]))
+
+; (defn calc-server-offset [state server-state new-ball]
+;   (when (not (:state-used? server-state))
+;     (let [[local-ball _ _] (calc-new-ball state)
+;           diff-x (abs (- (first local-ball) (first new-ball)))
+;           diff-y (abs (- (second local-ball) (second new-ball)))]
+;       (when (not= 0 diff-x)
+;         (let [{:keys [n]} (swap! server-local-offset update :n inc)]
+;           (swap! server-local-offset update :x-avg calc-avg diff-x n)
+;           (swap! server-local-offset update :y-avg calc-avg diff-y n)))
+;     ; (prn "diff x" diff-x)))
+;     ; (prn "diff y" diff-y)
+;     ; (prn "avg y" (:y-avg @server-local-offset))
+;     (prn "avg x" (:x-avg @server-local-offset)))))
+
+(defn calc-bat-server [state {:keys [opponent-bat opponent-bat-dir]}]
+  (if (= opponent-bat-dir 0)
+    (:opponent-bat state)
+    (let [opp-bat (calc-weighted-avg (:opponent-bat state) opponent-bat)]
+      (+ opp-bat (* c/bat-speed opponent-bat-dir)))))
