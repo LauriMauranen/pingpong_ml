@@ -1,5 +1,7 @@
 *.class
 *.jar
+*.swp
+*.swo
 /.lein-*
 /.nrepl-port
 /.repl

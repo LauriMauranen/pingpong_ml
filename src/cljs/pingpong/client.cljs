@@ -29,14 +29,16 @@
 
 ;; Send state to server.
 (defn send-state-to-server!
-  [{:keys [ball ball-dir ball-speed
-           player-bat player-bat-dir]}]
+  [{:keys [ball ball-dir ball-speed player-bat 
+           player-bat-dir player-score opponent-score]}]
   (chsk-send!
     [:pingpong/state [ball
                       ball-dir
                       ball-speed
                       player-bat
-                      player-bat-dir]]
+                      player-bat-dir
+                      player-score
+                      opponent-score]]
     c/timeout ;; Timeout
     (fn [reply]
       (when (cb-success? reply)
@@ -44,8 +46,11 @@
                                  :ball-dir
                                  :ball-speed
                                  :opponent-bat
-                                 :opponent-bat-dir] reply)
+                                 :opponent-bat-dir
+                                 :player-score
+                                 :opponent-score] reply)
               new-state (assoc new-state :state-used? false)]
+          ; (prn new-state)
           (swap! server-state into new-state))))))
 
 

@@ -30,13 +30,10 @@
                       p2-state (:state p2)]
                   ;; Server waits both players before sending new states.
                   (when p2-state
-                    (let [p1-state (:state p1)
-                          p1-callback (:callback p1)
+                    (let [p1-callback (:callback p1)
                           p2-callback (:callback p2)
-                          ball-state-p1 (utils/ball-state-to-p1 p1-state)
-                          ball-state-p2 (utils/reverse-x-ball ball-state-p1)
-                          new-state-p1 (utils/new-state ball-state-p1 p2-state)
-                          new-state-p2 (utils/new-state ball-state-p2 p1-state)]
+                          [new-state-p1
+                           new-state-p2] (utils/states-to-players (:state p1) p2-state)]
                       (p1-callback new-state-p1)
                       (p2-callback new-state-p2))
                     ;; Reset states.

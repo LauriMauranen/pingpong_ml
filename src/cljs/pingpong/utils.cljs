@@ -84,9 +84,9 @@
 
     :else ball-dir))
 
-(defn round [v]
+(defn round [value]
   (let [f #(/ (.round js/Math (* (+ % 0.0001) 1000)) 1000)]
-    (f v)))
+    (f value)))
 
 (defn round-v [v]
   (mapv round v))
@@ -94,12 +94,14 @@
 (defn check-reset [ball ball-dir ball-speed]
   (let [p-score? (< (first ball) (- (/ (first c/size) 2)))
         opp-score? (> (first ball) (/ (first c/size) 2))
-        rand-dir [(dec (* 2 (rand-int 2))) 0]]
-    (if p-score?
-      [[0 0] rand-dir c/ball-start-speed 1 0]
-      (if opp-score?
-        [[0 0] rand-dir c/ball-start-speed 0 1]
-        [(round-v ball) (round-v ball-dir) (round ball-speed) 0 0]))))
+        ; if new ball server does that
+        ; rand-dir [(dec (* 2 (rand-int 2))) 0]] 
+        new-ball (round-v ball)
+        new-ball-dir (round-v ball-dir)
+        new-ball-speed (round ball-speed)
+        p-score-inc (if p-score? 1 0)
+        opp-score-inc (if opp-score? 1 0)]
+    [new-ball new-ball-dir new-ball-speed p-score-inc opp-score-inc]))
 
 (defn calc-ball [ball ball-dir ball-speed]
   (mapv + ball (map #(* ball-speed %) ball-dir)))
@@ -136,20 +138,6 @@
   [(calc-ball new-ball new-ball-dir (* new-ball-speed c/server-lag-offset))
    (calc-new-ball-dir full-state)
    (+ new-ball-speed c/speed-inc)]))
-
-; (defn calc-server-offset [state server-state new-ball]
-;   (when (not (:state-used? server-state))
-;     (let [[local-ball _ _] (calc-new-ball state)
-;           diff-x (abs (- (first local-ball) (first new-ball)))
-;           diff-y (abs (- (second local-ball) (second new-ball)))]
-;       (when (not= 0 diff-x)
-;         (let [{:keys [n]} (swap! server-local-offset update :n inc)]
-;           (swap! server-local-offset update :x-avg calc-avg diff-x n)
-;           (swap! server-local-offset update :y-avg calc-avg diff-y n)))
-;     ; (prn "diff x" diff-x)))
-;     ; (prn "diff y" diff-y)
-;     ; (prn "avg y" (:y-avg @server-local-offset))
-;     (prn "avg x" (:x-avg @server-local-offset)))))
 
 (defn calc-bat-server [state {:keys [opponent-bat opponent-bat-dir]}]
   (if (= opponent-bat-dir 0)

@@ -71,8 +71,6 @@
     (when (and (:game-on? next-state)
           (= (rem (q/frame-count) c/server-message-interval) 0))
       (send-state-to-server! next-state))
-    ; (send-score-to-server! [p-score opp-score])
-    ; (calc-server-offset s ss new-ball)
     (swap! server-state assoc :state-used? true)
     next-state))
 
