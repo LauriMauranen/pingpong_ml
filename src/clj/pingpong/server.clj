@@ -26,14 +26,13 @@
                   p1 (get games p1-uid)
                   p2-uid (:opp-uid p1)]
               (when p2-uid
-                (let [p2 (get games p2-uid)
-                      p2-state (:state p2)]
+                (let [p2 (get games p2-uid)]
                   ;; Server waits both players before sending new states.
-                  (when p2-state
+                  (when (:state p2)
                     (let [p1-callback (:callback p1)
                           p2-callback (:callback p2)
                           [new-state-p1
-                           new-state-p2] (utils/states-to-players (:state p1) p2-state)]
+                           new-state-p2] (utils/states-to-players! p1 p2)]
                       (p1-callback new-state-p1)
                       (p2-callback new-state-p2))
                     ;; Reset states.
@@ -54,13 +53,11 @@
 
 ;; Put new client to game.
 (defmethod event :chsk/uidport-open [{:keys [uid]}]
-  (utils/uid-to-game! uid)
-  (prn "Client added to game" uid))
+  (utils/uid-to-game! uid))
 
 ;; Remove offline client from game.
 (defmethod event :chsk/uidport-close [{:keys [uid]}]
-  (utils/remove-uid-from-game! uid)
-  (prn "Client removed from game" uid))
+  (utils/remove-uid-from-game! uid))
 
 ;; States from players.
 (defmethod event :pingpong/state [{:keys [uid ?data ?reply-fn]}]

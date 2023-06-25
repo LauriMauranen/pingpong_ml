@@ -24,7 +24,8 @@
                          :player-score 0
                          :opponent-score 0
                          :game-on? false
-                         :state-used? true}))
+                         :state-used? true
+                         :can-score-inc? true}))
 
 
 ;; Send state to server.
@@ -48,9 +49,10 @@
                                  :opponent-bat
                                  :opponent-bat-dir
                                  :player-score
-                                 :opponent-score] reply)
+                                 :opponent-score
+                                 :can-score-inc?] reply)
               new-state (assoc new-state :state-used? false)]
-          ; (prn new-state)
+          (prn new-state)
           (swap! server-state into new-state))))))
 
 
@@ -65,7 +67,9 @@
         data (second ?data)]
     (prn "Receive" id data)
     (case id
-      :pingpong/game-on (swap! server-state assoc :game-on? true)
+      :pingpong/game-on (do (swap! server-state assoc :game-on? true)
+                            (swap! server-state assoc :player-score 0)
+                            (swap! server-state assoc :opponent-score 0))
       :pingpong/game-off (swap! server-state assoc :game-on? false)
       nil)))
 

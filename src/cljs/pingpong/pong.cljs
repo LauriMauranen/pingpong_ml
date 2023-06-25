@@ -29,21 +29,21 @@
     :k (assoc state :up-pressed? false)
     state))
 
-
 (defn update-state [s]
   (let [ss @server-state
+        state-used? (:state-used? ss)
 
         new-player-bat-dir (calc-bat-dir s)
         new-player-bat (+ (:player-bat s) (* c/bat-speed new-player-bat-dir))
 
         new-opp-bat-dir (:opponent-bat-dir ss)
-        new-opp-bat (if (:state-used? ss)
+        new-opp-bat (if state-used?
                       (+ (:opponent-bat s) (* c/bat-speed new-opp-bat-dir))
                       (calc-bat-server s ss))
 
         [new-ball
          new-ball-dir
-         new-ball-speed] (if (:state-used? ss)
+         new-ball-speed] (if state-used?
                            (calc-new-ball s)
                            (calc-new-ball-server s ss))
 
@@ -51,8 +51,17 @@
          final-ball-dir
          final-ball-speed
          p-score-inc
-         opp-score-inc] (check-reset new-ball new-ball-dir new-ball-speed)
+         opp-score-inc] (check-reset new-ball 
+                                     new-ball-dir 
+                                     new-ball-speed
+                                     (:can-score-inc? s))
 
+        ; p-score (if state-used?
+        ;           (:player-score s)
+        ;           (+ (:player-score ss) p-score-inc))
+        ; opp-score (if state-used?
+        ;             (:opponent-score s)
+        ;             (+ (:opponent-score ss) opp-score-inc))
         p-score (+ (:player-score ss) p-score-inc)
         opp-score (+ (:opponent-score ss) opp-score-inc)
 
@@ -67,6 +76,12 @@
                      (assoc :opponent-bat-dir new-opp-bat-dir)
                      (assoc :player-score p-score)
                      (assoc :opponent-score opp-score))]
+
+    (when (< 0 (+ p-score-inc opp-score-inc))
+      (swap! (q/state-atom) :can-score-inc? false))
+
+    (when (and (:state-used? ss) (:can-score-inc? ss))
+      (swap! (q/state-atom) :can-score-inc? true))
 
     (when (and (:game-on? next-state)
           (= (rem (q/frame-count) c/server-message-interval) 0))
