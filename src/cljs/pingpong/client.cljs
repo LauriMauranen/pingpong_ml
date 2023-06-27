@@ -3,11 +3,13 @@
             [pingpong.constants :as c]))
 
 
+(goog-define WS_PORT "undefined")
+(def ws-conf (if (identical? WS_PORT "undefined") {} {:port WS_PORT} ))
+
+
 ;;; Sente channels --->
 (let [{:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket-client! "/chsk" nil {:type :auto
-                                                      :host "localhost"
-                                                      :port 8090})]
+      (sente/make-channel-socket-client! "/chsk" nil ws-conf)]
 
   (def chsk       chsk)
   (def ch-chsk    ch-recv)  ;; ChannelSocket's receive channel
@@ -52,7 +54,7 @@
                                  :opponent-score
                                  :can-score-inc?] reply)
               new-state (assoc new-state :state-used? false)]
-          (prn new-state)
+          ; (prn new-state)
           (swap! server-state into new-state))))))
 
 
@@ -60,12 +62,13 @@
 (defmulti event :id)
 
 (defmethod event :default [{:keys [event]}]
-  (prn "Default client" event))
+  ; (prn "Default client" event)
+  )
 
 (defmethod event :chsk/recv [{:as ev-msg :keys [?data]}]
   (let [id (first ?data)
         data (second ?data)]
-    (prn "Receive" id data)
+    ; (prn "Receive" id data)
     (case id
       :pingpong/game-on (do (swap! server-state assoc :game-on? true)
                             (swap! server-state assoc :player-score 0)

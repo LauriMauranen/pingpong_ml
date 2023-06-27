@@ -24,3 +24,4 @@
 (def p-score-width (- (/ (first size) 2) 50))
 (def opp-score-width (- 50 (/ (first size) 2)))
 (def score-height (- 50 (/ (second size) 2)))
+(def BACKEND_PORT 8090)

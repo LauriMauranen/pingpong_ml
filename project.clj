@@ -1,6 +1,6 @@
-(defproject pingpong "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject pingpong "1.0.0"
+  :description "Pingpong multiplayer game"
+  :url "http://pingpong.wtf"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
@@ -10,13 +10,22 @@
                  [compojure "1.7.0"]
                  [com.taoensso/sente "1.17.0"]
                  [com.bhauman/figwheel-main "0.2.18"]
+                 [com.bhauman/rebel-readline-cljs "0.1.4"]
                  [http-kit "2.6.0"]
-                 [com.bhauman/rebel-readline-cljs "0.1.4"]]
+                 [environ "1.2.0"]]
 
-  :main pingpong.server
+  :plugins [[lein-environ "1.2.0"]]
+
+  :main pingpong.main
 
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
 
-  :resource-paths ["target" "resources"]
-
-  :aliases {"build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]})
+  :aliases {"fig" ["trampoline" "run" "-m" "figwheel.main"]
+            "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]
+            "build-prod" ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "prod"]}
+  
+  :profiles {:uberjar {:aot [pingpong.main]}
+             :dev {:resource-paths ["resources" "target"]
+                   :clean-targets ^{:protect false} ["target"]
+                   :env {:pingpong-backend-port 8090
+                         :pingpong-production false}}})

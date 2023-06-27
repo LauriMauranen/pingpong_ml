@@ -1,5 +1,4 @@
-(ns pingpong.utils
-  (:require [pingpong.websocket :refer [chsk-send!]]))
+(ns pingpong.utils)
 
 
 (def follow-games (atom {}))
@@ -59,32 +58,3 @@
         new-state-p1 (new-state ball-state-p1 (:state p2) p1-score p2-score)
         new-state-p2 (new-state ball-state-p2 (:state p1) p2-score p1-score)]
     (mapv #(conj % can-score-inc?) [new-state-p1 new-state-p2])))
-
-(defn uid-to-game! [client-uid]
-  ;; Try find opponent
-  (loop [games (keys @follow-games)]
-    (if (empty? games)
-      ;; No other players or all games are full.
-      (do (swap! follow-games assoc client-uid empty-game)
-          (prn "Client waiting opponent" client-uid))
-      (let [player-uid (first games)
-            {:keys [opp-uid]} (get @follow-games player-uid)]
-        (if (or opp-uid (= player-uid client-uid))
-          (recur (rest games))
-          ;; Opponent found.
-          (let [game-p1 (assoc empty-game :opp-uid player-uid)]
-            (swap! follow-games assoc client-uid game-p1)
-            (swap! follow-games assoc-in [player-uid :opp-uid] client-uid)
-            (prn "Clients start a game" client-uid player-uid)
-            (chsk-send! player-uid [:pingpong/game-on])
-            (chsk-send! client-uid [:pingpong/game-on])))))))
-
-(defn remove-uid-from-game! [client-uid]
-  (let [opp-uid (get-in @follow-games [client-uid :opp-uid])]
-    (when opp-uid
-      (chsk-send! opp-uid [:pingpong/game-off])
-      (swap! follow-games assoc-in [opp-uid :opp-uid] nil)
-      (prn "Clients removed from game" client-uid opp-uid)
-      (uid-to-game! opp-uid)))
-  (swap! follow-games dissoc client-uid)
-  (prn "Client removed from queue" client-uid))

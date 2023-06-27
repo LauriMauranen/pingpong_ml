@@ -1,0 +1,23 @@
+#syntax=docker/dockerfile:1
+
+FROM clojure:lein AS builder
+
+WORKDIR /app
+
+COPY ../project.clj .
+RUN lein deps
+
+COPY ../ .
+RUN lein build-prod
+
+RUN mkdir -p dist/js
+RUN mv resources/prod/public/index.html dist
+RUN mv target/public/cljs-out/prod-main.js dist/js
+
+FROM nginx:stable-alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+RUN rm /etc/nginx/conf.d/default.conf
+COPY ../nginx.conf /etc/nginx/conf.d
+
+CMD ["nginx", "-g", "daemon off;"]

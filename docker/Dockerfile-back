@@ -1,0 +1,16 @@
+#syntax=docker/dockerfile:1
+
+FROM clojure:lein AS builder
+
+WORKDIR /app
+
+ENV PINGPONG_BACKEND_PORT=8090
+ENV PINGPONG_PRODUCTION=true
+
+COPY ../project.clj .
+RUN lein deps
+
+COPY ../ .
+RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
+
+CMD ["java", "-jar", "app-standalone.jar"]
