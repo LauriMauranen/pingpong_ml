@@ -2,22 +2,38 @@ name: Create docker images and deploy
 run-name: Create docker images and deploy
 on: push
 env:
-  KAYTTAJA: ${{ vars.HUTTUSTUTKA_KAYTTAJA }}
-  REPON_SIJAINTI: ${{ vars.HUTTUSTUTKA_KANSIO }}
-  HT_DOMAIN: ${{ vars.HUTTUSTUTKA_DOMAIN }}
-  API_URL: ${{ vars.HUTTUSTUTKA_API_URL }}
-  REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+  KAYTTAJA: ${{ vars.PINGPONG_KAYTTAJA }}
+  PP_DOMAIN: ${{ vars.PINGPONG_DOMAIN }}
 jobs:
-  create-images-and-deploy:
+  whole-shit:
     runs-on: ubuntu-latest
     steps:
-      - run: mkdir ~/.ssh
-      - run: echo "${{ secrets.HUTTUSTUTKA_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-      - run: sudo chmod 600 ~/.ssh/id_ed25519
-      - run: ssh-keyscan -H $HT_DOMAIN > ~/.ssh/known_hosts
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "rm -rf $REPON_SIJAINTI"
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "git clone $REPO_URL $REPON_SIJAINTI"
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "cd $REPON_SIJAINTI/front/; printf \"VITE_GOOGLE_API_KEY=${{ secrets.GMAPS_API_KEY }}\nVITE_API_URL=$API_URL\" >> .env.production"
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "cd $REPON_SIJAINTI; ./rakenna.sh -b huttustutka-back -f huttustutka-front -c huttustutka-cron"
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "cd $REPON_SIJAINTI; ./aja.sh -b huttustutka-back -f huttustutka-front -c huttustutka-cron"
-      - run: ssh $KAYTTAJA@$HT_DOMAIN "docker image prune -a -f"
+      - uses: actions/checkout@v2
+
+      - name: Build images
+        run: | 
+                docker build . -f docker/Dockerfile-front -t pingpong-front
+                docker build . -f docker/Dockerfile-back -t pingpong-back
+                mkdir /etc/pingpong
+                docker save pingpong-front -o /etc/pingpong/pingpong-front.tar
+                docker save pingpong-back -o /etc/pingpong/pingpong-back.tar
+
+      - name: Setup ssh
+        run: |
+                mkdir ~/.ssh
+                echo "${{ secrets.PINGPONG_SSH_KEY }}" > ~/.ssh/id_ed25519
+                sudo chmod 600 ~/.ssh/id_ed25519
+                ssh-keyscan -H $PP_DOMAIN > ~/.ssh/known_hosts
+      
+      - name: Send images to server
+        run: |
+                rsync /etc/pingpong/pingpong-front.tar $KAYTTAJA@$PP_DOMAIN:/root
+                rsync /etc/pingpong/pingpong-back.tar $KAYTTAJA@$PP_DOMAIN:/root
+     
+      - name: Run new containers
+        run: | 
+                ssh $KAYTTAJA@$PP_DOMAIN "docker load -i pingpong-front.tar; docker load -i pingpong-back.tar"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker container rm -f pingpong-front:latest; docker container rm -f pingpong-back:latest"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 8090:8090 --name pinpong-back pingpong-back:latest"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 80:80 --name pinpong-front --add-host host.docker.internal:host-gateway pingpong-front:latest"
+                ssh $KAYTTAJA@$PP_DOMAIN "rm pingpong-front.tar pingpong-back.tar; docker system prune -a"
