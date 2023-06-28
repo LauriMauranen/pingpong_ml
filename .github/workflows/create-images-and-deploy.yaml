@@ -8,27 +8,28 @@ jobs:
   whole-shit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Build images
-        run: | 
-                docker build . -f docker/Dockerfile-front -t pingpong-front
-                docker build . -f docker/Dockerfile-back -t pingpong-back
-                mkdir /etc/pingpong
-                docker save pingpong-front -o /etc/pingpong/pingpong-front.tar
-                docker save pingpong-back -o /etc/pingpong/pingpong-back.tar
-
       - name: Setup ssh
         run: |
                 mkdir ~/.ssh
                 echo "${{ secrets.PINGPONG_SSH_KEY }}" > ~/.ssh/id_ed25519
                 sudo chmod 600 ~/.ssh/id_ed25519
                 ssh-keyscan -H $PP_DOMAIN > ~/.ssh/known_hosts
-      
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build images
+        run: | 
+                docker build . -f docker/Dockerfile-front -t pingpong-front
+                docker build . -f docker/Dockerfile-back -t pingpong-back
+                mkdir ~/pingpong_workflow
+                docker save pingpong-front -o ~/pingpong_workflow/pingpong-front.tar
+                docker save pingpong-back -o ~/pingpong_workflow/pingpong-back.tar
+
       - name: Send images to server
         run: |
-                rsync /etc/pingpong/pingpong-front.tar $KAYTTAJA@$PP_DOMAIN:/root
-                rsync /etc/pingpong/pingpong-back.tar $KAYTTAJA@$PP_DOMAIN:/root
+                rsync ~/pingpong_workflow/pingpong-front.tar $KAYTTAJA@$PP_DOMAIN:/root
+                rsync ~/pingpong_workflow/pingpong-back.tar $KAYTTAJA@$PP_DOMAIN:/root
      
       - name: Run new containers
         run: | 

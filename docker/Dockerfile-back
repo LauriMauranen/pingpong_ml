@@ -7,10 +7,10 @@ WORKDIR /app
 ENV PINGPONG_BACKEND_PORT=8090
 ENV PINGPONG_PRODUCTION=true
 
-COPY ../project.clj .
+COPY project.clj .
 RUN lein deps
 
-COPY ../ .
+COPY . .
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
 
 CMD ["java", "-jar", "app-standalone.jar"]
