@@ -34,7 +34,7 @@ jobs:
       - name: Run new containers
         run: | 
                 ssh $KAYTTAJA@$PP_DOMAIN "docker load -i pingpong-front.tar; docker load -i pingpong-back.tar"
-                ssh $KAYTTAJA@$PP_DOMAIN "docker container rm -f pingpong-front:latest; docker container rm -f pingpong-back:latest"
-                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 8090:8090 --name pinpong-back pingpong-back:latest"
-                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 80:80 --name pinpong-front --add-host host.docker.internal:host-gateway pingpong-front:latest"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker container rm -f pingpong-front; docker container rm -f pingpong-back"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 8090:8090 --name pingpong-back pingpong-back"
+                ssh $KAYTTAJA@$PP_DOMAIN "docker run -d -p 80:80 --name pingpong-front --add-host host.docker.internal:host-gateway pingpong-front"
                 ssh $KAYTTAJA@$PP_DOMAIN "rm pingpong-front.tar pingpong-back.tar; docker system prune -a"
