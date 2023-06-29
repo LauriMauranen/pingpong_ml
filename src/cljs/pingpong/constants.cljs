@@ -12,7 +12,7 @@
 (def bat-error 30)
 (def bat-height 100)
 (def ball-start-speed 5)
-(def server-message-interval 7) ; frames
+(def server-message-interval 2) ; frames
 (def frame-rate 60)
 (def server-lag-offset 1.0)
 (def timeout 200) ; ms
