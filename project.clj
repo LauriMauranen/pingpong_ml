@@ -5,13 +5,16 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [org.clojure/clojurescript "1.11.60" :scope "provided"]
+                 [org.clojure/clojurescript "1.11.4"]
                  [quil "3.1.0"]
                  [compojure "1.7.0"]
                  [com.taoensso/sente "1.17.0"]
                  [com.bhauman/figwheel-main "0.2.18"]
                  [com.bhauman/rebel-readline-cljs "0.1.4"]
                  [http-kit "2.6.0"]
+                 [reagent "1.1.0"]
+                 [cljsjs/react "17.0.2-0"]
+                 [cljsjs/react-dom "17.0.2-0"]
                  [environ "1.2.0"]]
 
   :plugins [[lein-environ "1.2.0"]]
@@ -23,9 +26,10 @@
   :aliases {"fig" ["trampoline" "run" "-m" "figwheel.main"]
             "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]
             "build-prod" ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "prod"]}
-  
+
   :profiles {:uberjar {:aot [pingpong.main]}
              :dev {:resource-paths ["resources" "target"]
+                   :css-dirs ["resources/public"]
                    :clean-targets ^{:protect false} ["target"]
                    :env {:pingpong-backend-port 8090
                          :pingpong-production false}}})

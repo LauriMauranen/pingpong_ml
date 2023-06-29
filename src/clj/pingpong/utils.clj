@@ -4,7 +4,8 @@
 (def follow-games (atom {}))
 (def last-changed-uid (atom nil))
 
-(def empty-game {:opp-uid nil
+(def empty-game {:p-uid nil
+                 :opp-uid nil
                  :p-score 0
                  :opp-score 0
                  :state nil
@@ -20,7 +21,7 @@
    (reverse-x (second ball-s))
    (nth ball-s 2)])
 
-(defn calc-avg [a b] 
+(defn calc-avg [a b]
   (/ (+ a b) 2))
 
 (defn new-state [ball-state [_ _ _ opp-bat opp-bat-dir _ _] p-score opp-score]
@@ -31,7 +32,7 @@
    (second p1-ball-s)
    (calc-avg (nth p1-ball-s 2) (nth p2-ball-s 2))])
 
-(defn balls-and-scores-to-players! [p1 p2]  
+(defn balls-and-scores-to-players! [p1 p2]
   (let [p1-state (:state p1)
         p2-state (:state p2)
         p1-score (nth p1-state 5)
@@ -50,7 +51,7 @@
         [ball-state (reverse-x-ball-state ball-state) p1-score p2-score false]))))
 
 (defn states-to-players! [p1 p2]
-  (let [[ball-state-p1 
+  (let [[ball-state-p1
          ball-state-p2
          p1-score
          p2-score

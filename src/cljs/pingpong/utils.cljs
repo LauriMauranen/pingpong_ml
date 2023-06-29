@@ -90,7 +90,7 @@
   (let [p-score? (and can-score-inc? (< (first ball) (- (/ (first c/size) 2))))
         opp-score? (and can-score-inc? (> (first ball) (/ (first c/size) 2)))
         ; if new ball server does that
-        ; rand-dir [(dec (* 2 (rand-int 2))) 0]] 
+        ; rand-dir [(dec (* 2 (rand-int 2))) 0]]
         new-ball (round-v ball)
         new-ball-dir (round-v ball-dir)
         new-ball-speed (round ball-speed)
@@ -145,3 +145,26 @@
   ;   (:opponent-bat state)
     (let [opp-bat (calc-avg (:opponent-bat state) opponent-bat)]
       (+ opp-bat (* c/bat-speed opponent-bat-dir))))
+
+(defn player-in-list [games-list player]
+  (loop [games games-list]
+    (if (empty? games)
+      false
+      (if (= player (:p2-name (first games)))
+        true
+        (recur (rest games))))))
+
+(defn make-game-list [all-games]
+  (loop [games all-games
+         game-list []]
+    (if (empty? games)
+      game-list
+      (let [game (first games)
+            player (:p-uid game)
+            new-game-list (if (player-in-list game-list player)
+                              game-list
+                              (conj game-list {:p1-name player
+                                               :p2-name (:opp-uid game)
+                                               :p1-score (:p-score game)
+                                               :p2-score (:opp-score game)}))]
+        (recur (rest games) new-game-list)))))

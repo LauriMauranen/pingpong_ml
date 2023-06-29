@@ -1,2 +1,2 @@
-{:main pingpong.pong
+{:main pingpong.app
  :closure-defines {pingpong.client/WS_PORT 8090}}

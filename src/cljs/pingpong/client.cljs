@@ -1,6 +1,8 @@
 (ns pingpong.client
   (:require [taoensso.sente :as sente :refer [cb-success?]]
-            [pingpong.constants :as c]))
+            [pingpong.constants :as c]
+            [pingpong.utils :refer [make-game-list]]
+            [pingpong.state :refer [app-state]]))
 
 
 (goog-define WS_PORT "undefined")
@@ -32,7 +34,7 @@
 
 ;; Send state to server.
 (defn send-state-to-server!
-  [{:keys [ball ball-dir ball-speed player-bat 
+  [{:keys [ball ball-dir ball-speed player-bat
            player-bat-dir player-score opponent-score]}]
   (chsk-send!
     [:pingpong/state [ball
@@ -57,6 +59,14 @@
           ; (prn new-state)
           (swap! server-state into new-state))))))
 
+
+(defn ask-games-data! []
+  (chsk-send!
+    [:pingpong/games]
+    c/timeout ;; Timeout
+    (fn [reply]
+      (when (cb-success? reply)
+        (swap! app-state assoc :games (make-game-list reply))))))
 
 ;;; Event handler --->
 (defmulti event :id)

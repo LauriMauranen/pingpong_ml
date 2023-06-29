@@ -51,8 +51,8 @@
          final-ball-dir
          final-ball-speed
          p-score-inc
-         opp-score-inc] (check-reset new-ball 
-                                     new-ball-dir 
+         opp-score-inc] (check-reset new-ball
+                                     new-ball-dir
                                      new-ball-speed
                                      (:can-score-inc? s))
 
@@ -86,6 +86,7 @@
     (when (and (:game-on? next-state)
           (= (rem (q/frame-count) c/server-message-interval) 0))
       (send-state-to-server! next-state))
+
     (swap! server-state assoc :state-used? true)
     next-state))
 
@@ -119,15 +120,17 @@
     (q/ellipse (first ball) (second ball) c/ball-diameter c/ball-diameter))
   (draw-bats state))
 
-(defn run-game! ^:export []
-  (q/defsketch pingpong
-    :title "Play pong!"
-    :size c/size
-    :setup setup
-    :key-pressed key-pressed
-    :key-released key-released
-    :update update-state
-    :draw draw-state
-    :middleware [m/fun-mode]))
+(q/defsketch pingpong-game
+  :title "Play pong!"
+  :size c/size
+  :setup setup
+  :key-pressed key-pressed
+  :key-released key-released
+  :update update-state
+  :draw draw-state
+  :features [:no-start]
+  :middleware [m/fun-mode])
 
-(run-game!)
+(defn pingpong-component []
+  (js/setTimeout #(pingpong-game) 1000)
+  [:div#pingpong-game])

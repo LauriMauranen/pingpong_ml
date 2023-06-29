@@ -10,8 +10,9 @@ RUN lein deps
 COPY . .
 RUN lein build-prod
 
-RUN mkdir -p dist/js
+RUN mkdir -p dist/js dist/css
 RUN mv resources/prod/public/index.html dist
+RUN mv resources/public/css/style.css dist/css
 RUN mv target/public/cljs-out/prod-main.js dist/js
 
 FROM nginx:stable-alpine

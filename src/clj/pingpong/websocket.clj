@@ -12,7 +12,7 @@
 
 ;;; Sente channels --->
 (let [{:keys [ch-recv send-fn connected-uids ajax-post-fn ajax-get-or-ws-handshake-fn]}
-      (sente/make-channel-socket-server! (get-sch-adapter) 
+      (sente/make-channel-socket-server! (get-sch-adapter)
                                          {:user-id-fn uid-to-client!
                                           :csrf-token-fn nil})]
 
@@ -49,14 +49,16 @@
   (loop [games (keys @utils/follow-games)]
     (if (empty? games)
       ;; No other players or all games are full.
-      (do (swap! utils/follow-games assoc client-uid utils/empty-game)
+      (do (swap! utils/follow-games assoc client-uid (assoc utils/empty-game :p-uid client-uid))
           (prn "Client waiting opponent" client-uid))
       (let [player-uid (first games)
             {:keys [opp-uid]} (get @utils/follow-games player-uid)]
         (if (or opp-uid (= player-uid client-uid))
           (recur (rest games))
           ;; Opponent found.
-          (let [game-p1 (assoc utils/empty-game :opp-uid player-uid)]
+          (let [game-p1 (-> utils/empty-game
+                          (assoc :p-uid client-uid)
+                          (assoc :opp-uid player-uid))]
             (swap! utils/follow-games assoc client-uid game-p1)
             (swap! utils/follow-games assoc-in [player-uid :opp-uid] client-uid)
             (prn "Clients start a game" client-uid player-uid)
@@ -98,6 +100,13 @@
   (swap! utils/follow-games assoc-in [uid :state] ?data)
   (swap! utils/follow-games assoc-in [uid :callback] ?reply-fn)
   (reset! utils/last-changed-uid uid))
+
+;; Give games to client to show in ui
+(defmethod event :pingpong/games [{:keys [?reply-fn]}]
+  ; take away state and callback from games
+  (?reply-fn (->> @utils/follow-games
+               seq
+               (map #(dissoc (second %) :state :callback)))))
 
 
 ;;; Router --->
