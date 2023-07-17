@@ -1,4 +1,4 @@
-(ns pingpong.gamelist
+(ns pingpong.components.gamelist
   (:require [pingpong.state :refer [app-state]]))
 
 
@@ -10,10 +10,11 @@
     [:div
       [:h3 "Games played now"]
       [:table>tbody
-        (for [p1 p1s
+        (for [idx (range (count p1s))
+              p1 p1s
               p2 p2s
               score scores]
-          ^{:key p1}
+          ^{:key idx}
           [:tr
             [:td {:style {:min-width "200px"}} p1]
             [:td {:style {:min-width "100px" :text-align "center"}} score]

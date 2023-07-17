@@ -59,7 +59,6 @@
           ; (prn new-state)
           (swap! server-state into new-state))))))
 
-
 (defn ask-games-data! []
   (chsk-send!
     [:pingpong/games]
@@ -67,6 +66,10 @@
     (fn [reply]
       (when (cb-success? reply)
         (swap! app-state assoc :games (make-game-list reply))))))
+
+(defn send-username-to-server! [username]
+  (chsk-send! [:pingpong/username username] c/timeout))
+
 
 ;;; Event handler --->
 (defmulti event :id)

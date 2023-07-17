@@ -1,4 +1,4 @@
-(ns pingpong.pong
+(ns pingpong.components.pong
   (:require [quil.core :as q :include-macros true]
             [quil.middleware :as m]
             [pingpong.utils :refer [check-reset calc-bat-dir calc-new-ball

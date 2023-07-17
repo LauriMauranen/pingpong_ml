@@ -6,6 +6,8 @@
 
 (def empty-game {:p-uid nil
                  :opp-uid nil
+                 :p-name nil
+                 ; :opp-name nil
                  :p-score 0
                  :opp-score 0
                  :state nil

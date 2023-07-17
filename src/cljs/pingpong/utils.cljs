@@ -146,11 +146,11 @@
     (let [opp-bat (calc-avg (:opponent-bat state) opponent-bat)]
       (+ opp-bat (* c/bat-speed opponent-bat-dir))))
 
-(defn player-in-list [games-list player]
+(defn player-in-list [games-list player-uid]
   (loop [games games-list]
     (if (empty? games)
       false
-      (if (= player (:p2-name (first games)))
+      (if (= player-uid (:p2-uid (first games)))
         true
         (recur (rest games))))))
 
@@ -160,11 +160,11 @@
     (if (empty? games)
       game-list
       (let [game (first games)
-            player (:p-uid game)
-            new-game-list (if (player-in-list game-list player)
+            new-game-list (if (player-in-list game-list (:p-uid game))
                               game-list
-                              (conj game-list {:p1-name player
-                                               :p2-name (:opp-uid game)
+                              (conj game-list {:p1-name (:p-name game)
+                                               :p2-name (:opp-name game)
                                                :p1-score (:p-score game)
-                                               :p2-score (:opp-score game)}))]
+                                               :p2-score (:opp-score game)
+                                               :p2-uid (:opp-uid game)}))]
         (recur (rest games) new-game-list)))))

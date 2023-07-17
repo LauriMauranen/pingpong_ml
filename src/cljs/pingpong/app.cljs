@@ -1,7 +1,7 @@
 (ns ^:figwheel-hooks pingpong.app
   (:require [reagent.dom]
             [reagent.core]
-            [pingpong.homepage :refer [main-component]]))
+            [pingpong.components.homepage :refer [main-component]]))
 
 
 (defn run []
