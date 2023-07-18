@@ -4,6 +4,8 @@
 (def follow-games (atom {}))
 (def last-changed-uid (atom nil))
 
+(def ball-start-speed 5)
+
 (def empty-game {:p-uid nil
                  :opp-uid nil
                  :p-name nil
@@ -41,7 +43,7 @@
         p2-score (nth p1-state 6)
         ball-speed (nth p1-state 2)]
     (if (or (< (:opp-score p2) p1-score) (< (:p-score p2) p2-score))
-      (let [p1-ball-state [[0 0] [(dec (* 2 (rand-int 2))) 0] ball-speed]
+      (let [p1-ball-state [[0 0] [(dec (* 2 (rand-int 2))) 0] ball-start-speed]
             p1-uid (:opp-uid p2)
             p2-uid (:opp-uid p1)]
         (swap! follow-games assoc-in [p1-uid :p-score] p1-score)

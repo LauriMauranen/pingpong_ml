@@ -6,16 +6,16 @@
 (def size [500 500])
 (def ball-diameter 30)
 (def bat-width 35)
-(def speed-inc 0)
 (def bat-speed 6)
 (def ball-error 200)
 (def bat-error 30)
 (def bat-height 100)
 (def ball-start-speed 5)
+(def speed-inc 0.005)
 (def server-message-interval 2) ; frames
 (def frame-rate 60)
 (def server-lag-offset 1.0)
-(def timeout 200) ; ms
+(def timeout 100) ; ms
 (def wa-weight-local 3)
 (def wa-weight-server 1)
 (def wa-div (+ wa-weight-local wa-weight-server))

@@ -5,10 +5,10 @@
 
 
 (defn main-component []
-  (when-let [username (js/prompt "Give username")]
+  (when-let [username (js/prompt "Give username" "Player 1")]
     (send-username-to-server! username)
     (js/setTimeout #(ask-games-data!) 1000)
     (js/setInterval #(ask-games-data!) 10000)
-    [:div
-      [pingpong-component]
+    [:div {:style {:display "flex"}}
+      [:div {:style {:margin-right "50px"}} [pingpong-component]]
       [game-list]]))
